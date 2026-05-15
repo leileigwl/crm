@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: crm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: crm
+      POSTGRES_USER: crm
+      POSTGRES_PASSWORD: crm123456
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm -d crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crm-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5001:5000"
+    environment:
+      PORT: 5000
+      SESSION_SECRET: change-this-to-a-long-random-string
+      DATABASE_URL: postgresql://crm:crm123456@postgres:5432/crm
+      SUPABASE_URL: http://localhost
+      SUPABASE_ANON_KEY: local-not-used
+      SUPABASE_SERVICE_ROLE_KEY: local-not-used
+      FEISHU_APP_ID: ""
+      FEISHU_APP_SECRET: ""
+      DEEPSEEK_BASE_URL: https://api.deepseek.com
+      DEEPSEEK_MODEL: deepseek-v4-flash
+      DEEPSEEK_API_KEY: ""
+      INIT_ADMIN_EMAIL: admin@crm.local
+      INIT_ADMIN_PASSWORD: Admin12345!
+      INIT_ADMIN_NAME: 系统管理员
+
+volumes:
+  postgres_data:

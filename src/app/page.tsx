@@ -33,7 +33,7 @@ export default function LoginPage() {
 			if (!res.ok) {
 				setError(data.error || '登录失败');
 			} else {
-				router.push('/dashboard');
+				window.location.href = '/dashboard';
 			}
 		} catch {
 			setError('登录失败，请稍后重试');

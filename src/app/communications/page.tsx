@@ -220,15 +220,10 @@ export default function CommunicationsPage() {
 									className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
 								>
 									<div className="space-y-3">
-										<div className="flex items-start justify-between gap-2">
-											<div className="flex flex-wrap items-center gap-2 min-w-0">
-												<Badge variant="outline" className="font-mono text-xs shrink-0">
-													{comm.customers?.customer_code}
-												</Badge>
-												<span className="font-medium">{comm.customers?.name}</span>
-												<span className="text-sm text-gray-500">
-													{comm.customers?.contact}
-												</span>
+										<div className="flex items-center justify-between gap-2">
+											<div className="flex items-center gap-2 min-w-0 flex-1">
+												<span className="font-medium shrink-0">{comm.customers?.name}</span>
+												<span className="text-sm text-gray-500 truncate">{comm.customers?.contact}</span>
 											</div>
 											<Button
 												variant="outline"
@@ -239,6 +234,9 @@ export default function CommunicationsPage() {
 												查看客户
 											</Button>
 										</div>
+										<Badge variant="outline" className="font-mono text-xs">
+											{comm.customers?.customer_code}
+										</Badge>
 										<p className="text-gray-700 whitespace-pre-wrap">{comm.content}</p>
 										{(comm.ai_summary || comm.ai_follow_up_at) && (
 											<div className="rounded-md border bg-white p-3 space-y-2">

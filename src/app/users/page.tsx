@@ -172,70 +172,120 @@ export default function UsersPage() {
 							<Loader2 className="h-6 w-6 animate-spin text-gray-400" />
 						</div>
 					) : (
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>姓名</TableHead>
-									<TableHead>用户名</TableHead>
-									<TableHead>邮箱</TableHead>
-									<TableHead>角色</TableHead>
-									<TableHead>状态</TableHead>
-									<TableHead>创建时间</TableHead>
-									<TableHead className="text-right">操作</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
+						<>
+							{/* Desktop table */}
+							<div className="hidden md:block">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>姓名</TableHead>
+											<TableHead>用户名</TableHead>
+											<TableHead>邮箱</TableHead>
+											<TableHead>角色</TableHead>
+											<TableHead>状态</TableHead>
+											<TableHead>创建时间</TableHead>
+											<TableHead className="text-right">操作</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{users.map((user) => (
+											<TableRow key={user.id}>
+												<TableCell className="font-medium">{user.name}</TableCell>
+												<TableCell>{user.username}</TableCell>
+												<TableCell>{user.email}</TableCell>
+												<TableCell>
+													<Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+														{user.role === 'admin' ? '管理员' : '员工'}
+													</Badge>
+												</TableCell>
+												<TableCell>
+													<Badge variant={user.is_active ? 'default' : 'destructive'}>
+														{user.is_active ? '正常' : '已禁用'}
+													</Badge>
+												</TableCell>
+												<TableCell>
+													{new Date(user.created_at).toLocaleDateString('zh-CN')}
+												</TableCell>
+												<TableCell className="text-right">
+													<div className="flex justify-end gap-2">
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => handleToggleActive(user.id, user.is_active)}
+														>
+															{user.is_active ? (
+																<>
+																	<UserX className="h-4 w-4 mr-1" />
+																	禁用
+																</>
+															) : (
+																<>
+																	<UserCheck className="h-4 w-4 mr-1" />
+																	启用
+																</>
+															)}
+														</Button>
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => handleDeleteUser(user.id)}
+															className="text-red-600 hover:text-red-700"
+														>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</div>
+
+							{/* Mobile card list */}
+							<div className="md:hidden space-y-3">
 								{users.map((user) => (
-									<TableRow key={user.id}>
-										<TableCell className="font-medium">{user.name}</TableCell>
-										<TableCell>{user.username}</TableCell>
-										<TableCell>{user.email}</TableCell>
-										<TableCell>
-											<Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-												{user.role === 'admin' ? '管理员' : '员工'}
-											</Badge>
-										</TableCell>
-										<TableCell>
-											<Badge variant={user.is_active ? 'default' : 'destructive'}>
-												{user.is_active ? '正常' : '已禁用'}
-											</Badge>
-										</TableCell>
-										<TableCell>
-											{new Date(user.created_at).toLocaleDateString('zh-CN')}
-										</TableCell>
-										<TableCell className="text-right">
-											<div className="flex justify-end gap-2">
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={() => handleToggleActive(user.id, user.is_active)}
-												>
-													{user.is_active ? (
-														<>
-															<UserX className="h-4 w-4 mr-1" />
-															禁用
-														</>
-													) : (
-														<>
-															<UserCheck className="h-4 w-4 mr-1" />
-															启用
-														</>
-													)}
-												</Button>
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={() => handleDeleteUser(user.id)}
-													className="text-red-600 hover:text-red-700"
-												>
-													<Trash2 className="h-4 w-4" />
-												</Button>
+									<div key={user.id} className="p-4 border rounded-lg space-y-3">
+										<div className="flex items-center justify-between">
+											<div>
+												<p className="font-medium">{user.name}</p>
+												<p className="text-sm text-gray-500">{user.email}</p>
 											</div>
-										</TableCell>
-									</TableRow>
+											<div className="flex gap-2">
+												<Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+													{user.role === 'admin' ? '管理员' : '员工'}
+												</Badge>
+												<Badge variant={user.is_active ? 'default' : 'destructive'}>
+													{user.is_active ? '正常' : '禁用'}
+												</Badge>
+											</div>
+										</div>
+										<p className="text-sm text-gray-500">用户名：{user.username}</p>
+										<p className="text-sm text-gray-500">创建：{new Date(user.created_at).toLocaleDateString('zh-CN')}</p>
+										<div className="flex gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => handleToggleActive(user.id, user.is_active)}
+											>
+												{user.is_active ? (
+													<><UserX className="h-4 w-4 mr-1" />禁用</>
+												) : (
+													<><UserCheck className="h-4 w-4 mr-1" />启用</>
+												)}
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => handleDeleteUser(user.id)}
+												className="text-red-600 hover:text-red-700"
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</div>
+									</div>
 								))}
-							</TableBody>
-						</Table>
+							</div>
+						</>
 					)}
 				</CardContent>
 			</Card>

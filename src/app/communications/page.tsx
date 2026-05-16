@@ -219,10 +219,10 @@ export default function CommunicationsPage() {
 									key={comm.id}
 									className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
 								>
-									<div className="flex items-start justify-between gap-4">
-										<div className="flex-1">
-											<div className="flex items-center gap-3 mb-2">
-												<Badge variant="outline" className="font-mono">
+									<div className="space-y-3">
+										<div className="flex items-start justify-between gap-2">
+											<div className="flex flex-wrap items-center gap-2 min-w-0">
+												<Badge variant="outline" className="font-mono text-xs shrink-0">
 													{comm.customers?.customer_code}
 												</Badge>
 												<span className="font-medium">{comm.customers?.name}</span>
@@ -230,40 +230,41 @@ export default function CommunicationsPage() {
 													{comm.customers?.contact}
 												</span>
 											</div>
-											<p className="text-gray-700 whitespace-pre-wrap">{comm.content}</p>
-											{(comm.ai_summary || comm.ai_follow_up_at) && (
-												<div className="mt-3 rounded-md border bg-white p-3 space-y-2">
-													{comm.ai_summary && (
-														<div>
-															<p className="text-xs text-gray-500">AI 摘要</p>
-															<p className="text-sm text-gray-800">{comm.ai_summary}</p>
-														</div>
-													)}
-													<div className="flex flex-wrap gap-3 text-sm text-gray-600">
-														{comm.ai_follow_up_at && (
-															<span>建议跟进：{new Date(comm.ai_follow_up_at).toLocaleString('zh-CN')}</span>
-														)}
+											<Button
+												variant="outline"
+												size="sm"
+												className="shrink-0 text-xs h-7 px-2"
+												onClick={() => router.push(`/dashboard/customers/${comm.customer_id}`)}
+											>
+												查看客户
+											</Button>
+										</div>
+										<p className="text-gray-700 whitespace-pre-wrap">{comm.content}</p>
+										{(comm.ai_summary || comm.ai_follow_up_at) && (
+											<div className="rounded-md border bg-white p-3 space-y-2">
+												{comm.ai_summary && (
+													<div>
+														<p className="text-xs text-gray-500">AI 摘要</p>
+														<p className="text-sm text-gray-800">{comm.ai_summary}</p>
 													</div>
-												</div>
-											)}
-											<div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-												<div className="flex items-center gap-1">
-													<User className="h-4 w-4" />
-													{comm.crm_users?.name}
-												</div>
-												<div className="flex items-center gap-1">
-													<Calendar className="h-4 w-4" />
-													{new Date(comm.created_at).toLocaleString('zh-CN')}
+												)}
+												<div className="flex flex-wrap gap-3 text-sm text-gray-600">
+													{comm.ai_follow_up_at && (
+														<span>建议跟进：{new Date(comm.ai_follow_up_at).toLocaleString('zh-CN')}</span>
+													)}
 												</div>
 											</div>
+										)}
+										<div className="flex items-center gap-4 text-sm text-gray-500">
+											<div className="flex items-center gap-1">
+												<User className="h-4 w-4" />
+												{comm.crm_users?.name}
+											</div>
+											<div className="flex items-center gap-1">
+												<Calendar className="h-4 w-4" />
+												{new Date(comm.created_at).toLocaleString('zh-CN')}
+											</div>
 										</div>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => router.push(`/dashboard/customers/${comm.customer_id}`)}
-										>
-											查看客户
-										</Button>
 									</div>
 								</div>
 							))}

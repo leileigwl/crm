@@ -34,6 +34,7 @@ import { Plus, Loader2, UserCheck, UserX, Trash2 } from 'lucide-react';
 interface User {
 	id: string;
 	email: string;
+	username: string;
 	name: string;
 	role: 'admin' | 'staff';
 	is_active: boolean;
@@ -47,6 +48,7 @@ export default function UsersPage() {
 	const [addLoading, setAddLoading] = useState(false);
 	const [newUser, setNewUser] = useState({
 		email: '',
+		username: '',
 		password: '',
 		name: '',
 		role: 'staff' as 'admin' | 'staff',
@@ -112,8 +114,13 @@ export default function UsersPage() {
 	};
 
 	const handleAddUser = async () => {
-		if (!newUser.email || !newUser.password || !newUser.name) {
+		if (!newUser.email || !newUser.username || !newUser.password || !newUser.name) {
 			alert('请填写完整信息');
+			return;
+		}
+
+		if (!/^[a-zA-Z0-9_-]{3,32}$/.test(newUser.username)) {
+			alert('用户名需为 3-32 位字母、数字、下划线或短横线');
 			return;
 		}
 
@@ -132,7 +139,7 @@ export default function UsersPage() {
 
 			if (response.ok) {
 				setShowAddDialog(false);
-				setNewUser({ email: '', password: '', name: '', role: 'staff' });
+				setNewUser({ email: '', username: '', password: '', name: '', role: 'staff' });
 				fetchUsers();
 			} else {
 				const data = await response.json();
@@ -169,6 +176,7 @@ export default function UsersPage() {
 							<TableHeader>
 								<TableRow>
 									<TableHead>姓名</TableHead>
+									<TableHead>用户名</TableHead>
 									<TableHead>邮箱</TableHead>
 									<TableHead>角色</TableHead>
 									<TableHead>状态</TableHead>
@@ -180,6 +188,7 @@ export default function UsersPage() {
 								{users.map((user) => (
 									<TableRow key={user.id}>
 										<TableCell className="font-medium">{user.name}</TableCell>
+										<TableCell>{user.username}</TableCell>
 										<TableCell>{user.email}</TableCell>
 										<TableCell>
 											<Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
@@ -248,6 +257,15 @@ export default function UsersPage() {
 								value={newUser.name}
 								onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
 								placeholder="用户姓名"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="username">用户名</Label>
+							<Input
+								id="username"
+								value={newUser.username}
+								onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+								placeholder="例如 zhangsan"
 							/>
 						</div>
 						<div className="space-y-2">

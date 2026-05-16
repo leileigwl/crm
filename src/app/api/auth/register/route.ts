@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword, getCurrentUser, isAdmin } from '@/lib/auth';
-import { createUser, findUserByEmail } from '@/storage/database/crm-repo';
+import { createUser, findUserByEmail, findUserByUsername } from '@/storage/database/crm-repo';
 
 export async function POST(request: NextRequest) {
 	try {
 		const currentUser = await getCurrentUser();
-		const { email, password, name, role } = await request.json();
+		const { email, username, password, name, role } = await request.json();
 		
 		// 判断是否为管理员创建用户
 		const isAdminCreating = isAdmin(currentUser);
 		
 		// 如果是管理员创建用户，需要验证权限
 		// 如果是员工自己注册，role 强制为 staff
-		if (!email || !password || !name) {
+		if (!email || !username || !password || !name) {
 			return NextResponse.json(
-				{ error: '邮箱、密码和姓名不能为空' },
+				{ error: '用户名、邮箱、密码和姓名不能为空' },
+				{ status: 400 }
+			);
+		}
+
+		if (!/^[a-zA-Z0-9_-]{3,32}$/.test(username)) {
+			return NextResponse.json(
+				{ error: '用户名需为 3-32 位字母、数字、下划线或短横线' },
 				{ status: 400 }
 			);
 		}
@@ -35,6 +42,14 @@ export async function POST(request: NextRequest) {
 				{ status: 400 }
 			);
 		}
+
+		const existingUsername = await findUserByUsername(username);
+		if (existingUsername) {
+			return NextResponse.json(
+				{ error: '该用户名已存在' },
+				{ status: 400 }
+			);
+		}
 		
 		// 创建用户
 		// 如果是员工自己注册，强制为 staff 角色
@@ -44,6 +59,7 @@ export async function POST(request: NextRequest) {
 		
 		const newUser = await createUser({
 			email,
+			username,
 			passwordHash,
 			name,
 			role: userRole,

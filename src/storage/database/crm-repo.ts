@@ -3,6 +3,7 @@ import { queryDb } from '@/storage/database/local-db';
 export interface DbUser {
   id: string;
   email: string;
+  username: string;
   password_hash: string;
   name: string;
   role: 'admin' | 'staff';
@@ -87,7 +88,7 @@ function mapCommunicationWithUser(row: Record<string, unknown>): DbCommunication
 
 export async function findActiveUserById(id: string) {
   const result = await queryDb<DbUser>(
-    `select id, email, password_hash, name, role, is_active, created_at, updated_at
+    `select id, email, username, password_hash, name, role, is_active, created_at, updated_at
      from crm_users
      where id = $1 and is_active = true
      limit 1`,
@@ -98,7 +99,7 @@ export async function findActiveUserById(id: string) {
 
 export async function findActiveUserByEmail(email: string) {
   const result = await queryDb<DbUser>(
-    `select id, email, password_hash, name, role, is_active, created_at, updated_at
+    `select id, email, username, password_hash, name, role, is_active, created_at, updated_at
      from crm_users
      where email = $1 and is_active = true
      limit 1`,
@@ -109,11 +110,22 @@ export async function findActiveUserByEmail(email: string) {
 
 export async function findUserByEmail(email: string) {
   const result = await queryDb<DbUser>(
-    `select id, email, password_hash, name, role, is_active, created_at, updated_at
+    `select id, email, username, password_hash, name, role, is_active, created_at, updated_at
      from crm_users
      where email = $1
      limit 1`,
     [email]
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function findUserByUsername(username: string) {
+  const result = await queryDb<DbUser>(
+    `select id, email, username, password_hash, name, role, is_active, created_at, updated_at
+     from crm_users
+     where username = $1
+     limit 1`,
+    [username]
   );
   return result.rows[0] ?? null;
 }
@@ -129,22 +141,23 @@ export async function updateUserPasswordHash(id: string, passwordHash: string) {
 
 export async function createUser(input: {
   email: string;
+  username: string;
   passwordHash: string;
   name: string;
   role: 'admin' | 'staff';
 }) {
-  const result = await queryDb<Pick<DbUser, 'id' | 'email' | 'name' | 'role'>>(
-    `insert into crm_users (email, password_hash, name, role)
-     values ($1, $2, $3, $4)
-     returning id, email, name, role`,
-    [input.email, input.passwordHash, input.name, input.role]
+  const result = await queryDb<Pick<DbUser, 'id' | 'email' | 'username' | 'name' | 'role'>>(
+    `insert into crm_users (email, username, password_hash, name, role)
+     values ($1, $2, $3, $4, $5)
+     returning id, email, username, name, role`,
+    [input.email, input.username, input.passwordHash, input.name, input.role]
   );
   return result.rows[0];
 }
 
 export async function listUsers() {
   const result = await queryDb(
-    `select id, email, name, role, is_active, created_at, updated_at
+    `select id, email, username, name, role, is_active, created_at, updated_at
      from crm_users
      order by created_at desc`
   );
@@ -154,6 +167,7 @@ export async function listUsers() {
 export async function updateUserById(input: {
   id: string;
   isActive?: boolean;
+  username?: string;
   name?: string;
   passwordHash?: string;
 }) {
@@ -164,6 +178,10 @@ export async function updateUserById(input: {
   if (typeof input.isActive === 'boolean') {
     assignments.push(`is_active = $${position++}`);
     values.push(input.isActive);
+  }
+  if (input.username) {
+    assignments.push(`username = $${position++}`);
+    values.push(input.username);
   }
   if (input.name) {
     assignments.push(`name = $${position++}`);

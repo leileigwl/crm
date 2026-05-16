@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
+import { extractJsonObject, normalizeNullableString } from '@/lib/ai-json';
 
 const FIELD_EXTRACTION_PROMPT = `你是一个信息提取助手。请从用户输入的文本中提取以下字段，并以JSON格式返回：
 - name: 客户姓名
@@ -12,8 +14,17 @@ const FIELD_EXTRACTION_PROMPT = `你是一个信息提取助手。请从用户�
 1. 如果某个字段无法从文本中提取，返回null
 2. 联系方式要识别出是手机号还是微信号等
 3. 只返回JSON，不要有其他说明文字
+4. 不能编造信息，拿不准就返回 null
+5. aiPurpose 要提炼成简短需求，不要原样复制大段全文
 
 用户输入文本：`;
+
+const extractedFieldSchema = z.object({
+	name: z.string().nullable().optional(),
+	contact: z.string().nullable().optional(),
+	city: z.string().nullable().optional(),
+	aiPurpose: z.string().nullable().optional(),
+});
 
 function extractByRule(text: string) {
 	const mobileMatch = text.match(/1[3-9]\d{9}/);
@@ -26,60 +37,73 @@ function extractByRule(text: string) {
 		name: nameMatch?.[1] || null,
 		contact: mobileMatch?.[0] || wechatMatch?.[1] || null,
 		city: cityMatch?.[1] || null,
-		aiPurpose: text,
+		aiPurpose: normalizeNullableString(text, 120),
 	};
 }
 
-async function extractByLLM(text: string, request: NextRequest) {
+function normalizeExtractedFields(raw: unknown, fallback: ReturnType<typeof extractByRule>) {
+	const parsed = extractedFieldSchema.safeParse(raw);
+	if (!parsed.success) {
+		return fallback;
+	}
+
+	return {
+		name: normalizeNullableString(parsed.data.name, 30) ?? fallback.name,
+		contact: normalizeNullableString(parsed.data.contact, 60) ?? fallback.contact,
+		city: normalizeNullableString(parsed.data.city, 30) ?? fallback.city,
+		aiPurpose: normalizeNullableString(parsed.data.aiPurpose, 120) ?? fallback.aiPurpose,
+	};
+}
+
+async function extractByLLM(text: string) {
 	const apiKey = process.env.DEEPSEEK_API_KEY;
 	const baseUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
 	const model = process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash';
+	const fallback = extractByRule(text);
 
 	if (!apiKey) {
-		return extractByRule(text);
+		return fallback;
 	}
 
-	const response = await axios.post(
-		`${baseUrl}/chat/completions`,
-		{
-			model,
-			messages: [
-				{ role: 'system', content: '你是一个严谨的信息提取助手，只返回合法 JSON。' },
-				{ role: 'user', content: FIELD_EXTRACTION_PROMPT + text },
-			],
-			temperature: 0.3,
-			stream: false,
-			response_format: { type: 'json_object' },
-		},
-		{
-			headers: {
-				Authorization: `Bearer ${apiKey}`,
-				'Content-Type': 'application/json',
+	for (let attempt = 0; attempt < 2; attempt += 1) {
+		const response = await axios.post(
+			`${baseUrl}/chat/completions`,
+			{
+				model,
+				messages: [
+					{ role: 'system', content: '你是一个严谨的信息提取助手，只返回合法 JSON 对象。' },
+					{ role: 'user', content: FIELD_EXTRACTION_PROMPT + text },
+				],
+				temperature: 0,
+				stream: false,
+				response_format: { type: 'json_object' },
 			},
-			timeout: 30000,
-		}
-	);
-
-	const content = response.data?.choices?.[0]?.message?.content;
-
-	if (!content || typeof content !== 'string') {
-		return extractByRule(text);
-	}
-
-	try {
-		return JSON.parse(content);
-	} catch {
-		const jsonMatch = content.match(/\{[\s\S]*\}/);
-		if (jsonMatch) {
-			try {
-				return JSON.parse(jsonMatch[0]);
-			} catch {
-				return extractByRule(text);
+			{
+				headers: {
+					Authorization: `Bearer ${apiKey}`,
+					'Content-Type': 'application/json',
+				},
+				timeout: 30000,
 			}
+		);
+
+		const content = response.data?.choices?.[0]?.message?.content;
+		if (!content || typeof content !== 'string') {
+			continue;
 		}
 
-		return extractByRule(text);
+		const parsed = extractJsonObject(content);
+		if (!parsed) {
+			continue;
+		}
+
+		const normalized = normalizeExtractedFields(parsed, fallback);
+		if (normalized.name || normalized.contact || normalized.city || normalized.aiPurpose) {
+			return normalized;
+		}
 	}
+
+	return fallback;
 }
 
 // AI字段提取
@@ -105,7 +129,7 @@ export async function POST(request: NextRequest) {
 
 		let extractedFields;
 		try {
-			extractedFields = await extractByLLM(text, request);
+			extractedFields = await extractByLLM(text);
 		} catch {
 			extractedFields = extractByRule(text);
 		}

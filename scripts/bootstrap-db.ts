@@ -11,6 +11,7 @@ async function bootstrapDb() {
     create table if not exists crm_users (
       id uuid primary key default gen_random_uuid(),
       email varchar(255) not null unique,
+      username varchar(64) not null unique,
       password_hash varchar(255) not null,
       name varchar(128) not null,
       role varchar(20) not null default 'staff',
@@ -58,6 +59,19 @@ async function bootstrapDb() {
       updated_at timestamptz
     );
 
+    alter table communications add column if not exists ai_summary text;
+    alter table communications add column if not exists ai_next_action text;
+    alter table communications add column if not exists ai_follow_up_at timestamptz;
+    alter table communications add column if not exists ai_intent varchar(32);
+    alter table customers add column if not exists feishu_record_id varchar(64);
+    alter table crm_users add column if not exists username varchar(64);
+    update crm_users
+    set username = split_part(email, '@', 1)
+    where (username is null or username = '');
+  `);
+
+  await queryDb(`
+    create unique index if not exists crm_users_username_idx on crm_users(username);
     create index if not exists crm_users_email_idx on crm_users(email);
     create index if not exists crm_users_role_idx on crm_users(role);
     create index if not exists customers_customer_code_idx on customers(customer_code);
@@ -69,12 +83,10 @@ async function bootstrapDb() {
     create index if not exists communications_user_id_idx on communications(user_id);
     create index if not exists communications_created_at_idx on communications(created_at);
     create index if not exists system_config_key_idx on system_config(config_key);
+  `);
 
-    alter table communications add column if not exists ai_summary text;
-    alter table communications add column if not exists ai_next_action text;
-    alter table communications add column if not exists ai_follow_up_at timestamptz;
-    alter table communications add column if not exists ai_intent varchar(32);
-    alter table customers add column if not exists feishu_record_id varchar(64);
+  await queryDb(`
+    alter table crm_users alter column username set not null;
   `);
 
   console.log('数据库结构检查完成');

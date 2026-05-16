@@ -9,6 +9,7 @@ async function initAdmin() {
 	const email = process.env.INIT_ADMIN_EMAIL;
 	const password = process.env.INIT_ADMIN_PASSWORD;
 	const name = process.env.INIT_ADMIN_NAME || '系统管理员';
+	const username = process.env.INIT_ADMIN_USERNAME || 'admin';
 	
 	// 检查是否已存在管理员
 	const existingAdmin = await findAnyAdmin();
@@ -29,6 +30,7 @@ async function initAdmin() {
 	const passwordHash = await hashPassword(password);
 	const data = await createUser({
 		email,
+		username,
 		passwordHash,
 		name,
 		role: 'admin',
@@ -36,6 +38,7 @@ async function initAdmin() {
 
 	console.log('管理员账号创建成功:');
 	console.log(`邮箱: ${data.email}`);
+	console.log(`用户名: ${data.username}`);
 	console.log(`姓名: ${data.name}`);
 }
 

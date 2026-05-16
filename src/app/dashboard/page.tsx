@@ -202,46 +202,86 @@ export default function DashboardPage() {
 	const totalPages = Math.ceil(total / pageSize);
 
 	return (
-		<div className="space-y-6">
-			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-				<div>
-					<h1 className="text-2xl font-bold text-gray-900">客户管理</h1>
-					<p className="text-gray-500 mt-1">共 {total} 位客户</p>
-				</div>
-				<Button onClick={handleOpenAddDialog}>
-					<Plus className="h-4 w-4 mr-2" />
+		<div className="space-y-4">
+			{/* Header row */}
+			<div className="flex items-center justify-between">
+				<p className="text-sm text-gray-500">共 {total} 位客户</p>
+				<Button size="sm" onClick={handleOpenAddDialog} className="bg-blue-600 hover:bg-blue-700">
+					<Plus className="h-4 w-4 mr-1" />
 					新增客户
 				</Button>
 			</div>
 
-			<Card>
-				<CardHeader className="pb-3">
-					<div className="relative">
-						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-						<Input
-							placeholder="搜索客户姓名、联系方式、城市..."
-							value={search}
-							onChange={(e) => setSearch(e.target.value)}
-							className="pl-10"
-						/>
+			{/* Search */}
+			<div className="relative">
+				<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+				<Input
+					placeholder="搜索姓名、联系方式、城市..."
+					value={search}
+					onChange={(e) => setSearch(e.target.value)}
+					className="pl-10 bg-white"
+				/>
+			</div>
+
+			{/* Loading */}
+			{loading ? (
+				<div className="flex justify-center py-12">
+					<Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+				</div>
+			) : customers.length === 0 ? (
+				<div className="text-center py-12 text-gray-400 text-sm">
+					暂无客户，点击「新增客户」添加
+				</div>
+			) : (
+				<>
+					{/* ── Mobile card list ── */}
+					<div className="md:hidden space-y-3">
+						{customers.map((customer) => (
+							<div
+								key={customer.id}
+								className="bg-white rounded-xl border border-gray-100 p-4 active:bg-gray-50 transition-colors"
+								onClick={() => router.push(`/dashboard/customers/${customer.id}`)}
+							>
+								<div className="flex items-start justify-between mb-2">
+									<div>
+										<p className="font-semibold text-gray-900">{customer.name}</p>
+										<p className="text-sm text-gray-500 mt-0.5">{customer.contact}</p>
+									</div>
+									<div className="flex items-center gap-2">
+										<Badge variant="outline" className="font-mono text-xs">
+											{customer.customer_code}
+										</Badge>
+										<button
+											onClick={(e) => {
+												e.stopPropagation();
+												handleDeleteCustomer(customer.id);
+											}}
+											className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+										>
+											<Trash2 className="h-4 w-4" />
+										</button>
+									</div>
+								</div>
+								{customer.ai_purpose && (
+									<p className="text-xs text-gray-400 line-clamp-2 mt-1">{customer.ai_purpose}</p>
+								)}
+								<div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
+									{customer.city && <span>{customer.city}</span>}
+									<span>跟进人：{customer.crm_users?.name || '-'}</span>
+									<span className="ml-auto">{new Date(customer.created_at).toLocaleDateString('zh-CN')}</span>
+								</div>
+							</div>
+						))}
 					</div>
-				</CardHeader>
-				<CardContent>
-					{loading ? (
-						<div className="flex justify-center py-8">
-							<Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-						</div>
-					) : customers.length === 0 ? (
-						<div className="text-center py-8 text-gray-500">
-							暂无客户数据，点击&quot;新增客户&quot;添加第一位客户
-						</div>
-					) : (
-						<>
+
+					{/* ── Desktop table ── */}
+					<Card className="hidden md:block">
+						<CardContent className="p-0">
 							<div className="overflow-x-auto">
 								<Table>
 									<TableHeader>
 										<TableRow>
-											<TableHead>客户编号</TableHead>
+											<TableHead>编号</TableHead>
 											<TableHead>姓名</TableHead>
 											<TableHead>联系方式</TableHead>
 											<TableHead>城市</TableHead>
@@ -255,18 +295,18 @@ export default function DashboardPage() {
 										{customers.map((customer) => (
 											<TableRow key={customer.id}>
 												<TableCell>
-													<Badge variant="outline" className="font-mono">
+													<Badge variant="outline" className="font-mono text-xs">
 														{customer.customer_code}
 													</Badge>
 												</TableCell>
 												<TableCell className="font-medium">{customer.name}</TableCell>
 												<TableCell>{customer.contact}</TableCell>
 												<TableCell>{customer.city || '-'}</TableCell>
-												<TableCell className="max-w-[200px] truncate">
+												<TableCell className="max-w-[200px] truncate text-sm text-gray-500">
 													{customer.ai_purpose || '-'}
 												</TableCell>
 												<TableCell>{customer.crm_users?.name || '-'}</TableCell>
-												<TableCell>
+												<TableCell className="text-sm text-gray-500">
 													{new Date(customer.created_at).toLocaleDateString('zh-CN')}
 												</TableCell>
 												<TableCell className="text-right">
@@ -282,7 +322,7 @@ export default function DashboardPage() {
 															variant="outline"
 															size="sm"
 															onClick={() => handleDeleteCustomer(customer.id)}
-															className="text-red-600 hover:text-red-700"
+															className="text-red-500 hover:text-red-600"
 														>
 															<Trash2 className="h-4 w-4" />
 														</Button>
@@ -293,38 +333,37 @@ export default function DashboardPage() {
 									</TableBody>
 								</Table>
 							</div>
+						</CardContent>
+					</Card>
 
-							{totalPages > 1 && (
-								<div className="flex items-center justify-between mt-4 pt-4 border-t">
-									<p className="text-sm text-gray-500">
-										第 {page} 页，共 {totalPages} 页
-									</p>
-									<div className="flex gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => setPage((p) => Math.max(1, p - 1))}
-											disabled={page === 1}
-										>
-											<ChevronLeft className="h-4 w-4" />
-											上一页
-										</Button>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-											disabled={page === totalPages}
-										>
-											下一页
-											<ChevronRight className="h-4 w-4" />
-										</Button>
-									</div>
-								</div>
-							)}
-						</>
+					{/* Pagination */}
+					{totalPages > 1 && (
+						<div className="flex items-center justify-between pt-2">
+							<p className="text-sm text-gray-400">
+								第 {page} / {totalPages} 页
+							</p>
+							<div className="flex gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setPage((p) => Math.max(1, p - 1))}
+									disabled={page === 1}
+								>
+									<ChevronLeft className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+									disabled={page === totalPages}
+								>
+									<ChevronRight className="h-4 w-4" />
+								</Button>
+							</div>
+						</div>
 					)}
-				</CardContent>
-			</Card>
+				</>
+			)}
 
 			{/* 新增客户对话框 */}
 			<Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
